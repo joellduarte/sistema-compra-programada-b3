@@ -42,6 +42,8 @@ public static class DependencyInjection
         services.AddScoped<ICustodiaRepository, CustodiaRepository>();
         services.AddScoped<IHistoricoValorMensalRepository, HistoricoValorMensalRepository>();
         services.AddScoped<ICestaRecomendacaoRepository, CestaRecomendacaoRepository>();
+        services.AddScoped<IOrdemCompraRepository, OrdemCompraRepository>();
+        services.AddScoped<IDistribuicaoRepository, DistribuicaoRepository>();
 
         // Parsers
         services.AddSingleton<ICotahistParser, CotahistParser>();
@@ -50,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<ICotacaoService, CotacaoService>();
         services.AddScoped<IClienteService, ClienteService>();
         services.AddScoped<ICestaService, CestaService>();
+        services.AddScoped<IMotorCompraService, MotorCompraService>();
 
         return services;
     }
