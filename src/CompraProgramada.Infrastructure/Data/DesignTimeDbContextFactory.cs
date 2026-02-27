@@ -7,7 +7,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<CompraProg
 {
     public CompraProgramadaDbContext CreateDbContext(string[] args)
     {
-        var connectionString = "Server=localhost;Port=3306;Database=compra_programada;User=compra_user;Password=compra_pass;";
+        var connectionString = "Server=localhost;Port=3307;Database=compra_programada;User=compra_user;Password=compra_pass;";
 
         var optionsBuilder = new DbContextOptionsBuilder<CompraProgramadaDbContext>();
         optionsBuilder.UseMySql(

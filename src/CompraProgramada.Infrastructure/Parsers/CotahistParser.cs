@@ -34,13 +34,20 @@ public class CotahistParser : ICotahistParser
         if (!File.Exists(caminhoArquivo))
             throw new FileNotFoundException($"Arquivo COTAHIST não encontrado: {caminhoArquivo}");
 
+        using var stream = File.OpenRead(caminhoArquivo);
+        return ParseStream(stream);
+    }
+
+    public IReadOnlyList<Cotacao> ParseStream(Stream stream)
+    {
         // Encoding ISO-8859-1 (Latin1) conforme documentação da B3
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var encoding = Encoding.GetEncoding("ISO-8859-1");
 
         var cotacoes = new List<Cotacao>();
+        using var reader = new StreamReader(stream, encoding);
 
-        foreach (var linha in File.ReadLines(caminhoArquivo, encoding))
+        while (reader.ReadLine() is { } linha)
         {
             var cotacao = ParseLinha(linha);
             if (cotacao is not null)

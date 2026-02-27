@@ -5,10 +5,16 @@ namespace CompraProgramada.Application.Interfaces;
 public interface ICotacaoService
 {
     /// <summary>
-    /// Importa cotações de um arquivo COTAHIST da B3.
+    /// Importa cotações de um arquivo COTAHIST da B3 pelo caminho.
     /// Retorna a quantidade de registros importados.
     /// </summary>
     Task<int> ImportarArquivoCotahistAsync(string caminhoArquivo);
+
+    /// <summary>
+    /// Importa cotações de um stream COTAHIST da B3 (upload).
+    /// Retorna a quantidade de registros importados.
+    /// </summary>
+    Task<int> ImportarStreamCotahistAsync(Stream stream);
 
     /// <summary>
     /// Obtém o preço de fechamento mais recente para um ticker.

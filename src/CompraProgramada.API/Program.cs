@@ -1,4 +1,6 @@
 using CompraProgramada.Infrastructure;
+using CompraProgramada.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +24,13 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Aplicar migrations automaticamente no startup (facilita demo e testes)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<CompraProgramadaDbContext>();
+    db.Database.Migrate();
+}
 
 // Swagger sempre habilitado (facilita demonstração)
 app.UseSwagger();

@@ -20,15 +20,32 @@ public class CotacaoService : ICotacaoService
         _parser = parser;
     }
 
+    private const int TamanhoBatch = 5000;
+
     public async Task<int> ImportarArquivoCotahistAsync(string caminhoArquivo)
     {
         var cotacoes = _parser.ParseArquivo(caminhoArquivo);
+        return await SalvarEmLotesAsync(cotacoes);
+    }
 
+    public async Task<int> ImportarStreamCotahistAsync(Stream stream)
+    {
+        var cotacoes = _parser.ParseStream(stream);
+        return await SalvarEmLotesAsync(cotacoes);
+    }
+
+    private async Task<int> SalvarEmLotesAsync(IReadOnlyList<Cotacao> cotacoes)
+    {
         if (cotacoes.Count == 0)
             return 0;
 
-        await _cotacaoRepository.AdicionarVariasAsync(cotacoes);
-        await _unitOfWork.CommitAsync();
+        // Salvar em lotes para evitar timeout e uso excessivo de memória
+        for (var i = 0; i < cotacoes.Count; i += TamanhoBatch)
+        {
+            var lote = cotacoes.Skip(i).Take(TamanhoBatch);
+            await _cotacaoRepository.AdicionarVariasAsync(lote);
+            await _unitOfWork.CommitAsync();
+        }
 
         return cotacoes.Count;
     }

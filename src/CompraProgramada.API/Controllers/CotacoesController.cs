@@ -8,34 +8,38 @@ namespace CompraProgramada.API.Controllers;
 public class CotacoesController : ControllerBase
 {
     private readonly ICotacaoService _cotacaoService;
-    private readonly IConfiguration _configuration;
 
-    public CotacoesController(ICotacaoService cotacaoService, IConfiguration configuration)
+    public CotacoesController(ICotacaoService cotacaoService)
     {
         _cotacaoService = cotacaoService;
-        _configuration = configuration;
     }
 
     /// <summary>
-    /// Importa cotações de um arquivo COTAHIST da B3.
-    /// O arquivo deve estar na pasta configurada em Cotacoes:CaminhoArquivos.
+    /// Importa cotações via upload de arquivo COTAHIST (.TXT).
+    /// Aceita apenas arquivos .TXT com formato COTAHIST válido da B3.
     /// </summary>
-    [HttpPost("importar/{nomeArquivo}")]
-    public async Task<IActionResult> ImportarArquivo(string nomeArquivo)
+    [HttpPost("importar")]
+    [RequestSizeLimit(500_000_000)] // 500MB para arquivos anuais grandes
+    public async Task<IActionResult> ImportarArquivoUpload(IFormFile arquivo)
     {
-        var pastaBase = _configuration["Cotacoes:CaminhoArquivos"] ?? "cotacoes";
-        var caminhoCompleto = Path.Combine(pastaBase, nomeArquivo);
+        if (arquivo is null || arquivo.Length == 0)
+            return BadRequest(new { erro = "Nenhum arquivo enviado." });
 
-        if (!System.IO.File.Exists(caminhoCompleto))
-            return NotFound(new { erro = $"Arquivo não encontrado: {nomeArquivo}" });
+        var extensao = Path.GetExtension(arquivo.FileName)?.ToUpperInvariant();
+        if (extensao != ".TXT")
+            return BadRequest(new { erro = "Formato inválido. Envie um arquivo .TXT no formato COTAHIST da B3." });
 
-        var quantidade = await _cotacaoService.ImportarArquivoCotahistAsync(caminhoCompleto);
+        using var stream = arquivo.OpenReadStream();
+        var quantidade = await _cotacaoService.ImportarStreamCotahistAsync(stream);
+
+        if (quantidade == 0)
+            return BadRequest(new { erro = "Nenhuma cotação válida encontrada. Verifique se o arquivo está no formato COTAHIST da B3." });
 
         return Ok(new
         {
-            mensagem = $"Importação concluída com sucesso.",
+            mensagem = "Importação concluída com sucesso.",
             registrosImportados = quantidade,
-            arquivo = nomeArquivo
+            arquivo = arquivo.FileName
         });
     }
 

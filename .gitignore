@@ -53,3 +53,11 @@ docker-compose.override.yml
 *.env.local
 appsettings.Development.json
 appsettings.Local.json
+
+## Arquivos COTAHIST da B3 (muito grandes para o repositório)
+cotacoes/*.TXT
+cotacoes/*.txt
+!cotacoes/.gitkeep
+
+## Tools temporários
+tools/
