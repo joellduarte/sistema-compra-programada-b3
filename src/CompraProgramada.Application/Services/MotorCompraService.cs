@@ -71,10 +71,14 @@ public class MotorCompraService : IMotorCompraService
         }
         var totalConsolidado = aportes.Sum(a => a.Valor);
 
-        // Obter cotações e calcular quantidades por ativo
+        // ===== FASE 1: Criar ordens e custódias (precisam de IDs do banco) =====
         var ordensDto = new List<OrdemCompraDto>();
         var distribuicoesResumo = new List<DistribuicaoResumoDto>();
         var ordensEntidade = new List<OrdemCompra>();
+
+        // Dados para a fase 2 (distribuição): ticker → (custodiaMaster, qtdParaDistribuir, preço)
+        var dadosDistribuicao = new List<(
+            string Ticker, Custodia CustodiaMaster, int QtdParaDistribuir, decimal Preco)>();
 
         foreach (var item in cesta.Itens)
         {
@@ -97,9 +101,6 @@ public class MotorCompraService : IMotorCompraService
             var custodiaMaster = await _custodiaRepository
                 .ObterPorContaETickerAsync(contaMaster.Id, item.Ticker);
             var saldoMaster = custodiaMaster?.Quantidade ?? 0;
-
-            // Total disponível = calculado (o que comprar + saldo master)
-            var totalDisponivel = quantidadeCalculada + saldoMaster;
 
             // Quantidade efetiva a comprar (descontando saldo)
             var quantidadeAComprar = Math.Max(0, quantidadeCalculada - saldoMaster);
@@ -142,25 +143,32 @@ public class MotorCompraService : IMotorCompraService
                     await _custodiaRepository.AdicionarAsync(custodiaMaster);
                 }
                 custodiaMaster.AdicionarAcoes(quantidadeAComprar, precoCotacao);
-                await _custodiaRepository.AtualizarAsync(custodiaMaster);
             }
 
-            // RN-034 a RN-040: Distribuição proporcional
-            var totalDistribuido = 0;
-            var clientesDistribuidos = 0;
-
-            // totalDisponivel = ações compradas agora + saldo master anterior
-            // Agora a custódia master tem todas as ações disponíveis
+            // Preparar dados para distribuição na fase 2
             var qtdParaDistribuir = quantidadeAComprar > 0
                 ? quantidadeAComprar + saldoMaster
                 : saldoMaster;
 
-            if (qtdParaDistribuir <= 0)
+            if (qtdParaDistribuir > 0 && custodiaMaster is not null)
+            {
+                dadosDistribuicao.Add((item.Ticker, custodiaMaster, qtdParaDistribuir, precoCotacao));
+            }
+            else
             {
                 distribuicoesResumo.Add(new DistribuicaoResumoDto(
                     item.Ticker, 0, custodiaMaster?.Quantidade ?? 0, 0));
-                continue;
             }
+        }
+
+        // Commit fase 1: ordens e custódias recebem IDs auto-increment
+        await _unitOfWork.CommitAsync();
+
+        // ===== FASE 2: Distribuição proporcional (agora com IDs válidos) =====
+        foreach (var (ticker, custodiaMaster, qtdParaDistribuir, precoCotacao) in dadosDistribuicao)
+        {
+            var totalDistribuido = 0;
+            var clientesDistribuidos = 0;
 
             foreach (var (cliente, aporte) in aportes)
             {
@@ -179,42 +187,40 @@ public class MotorCompraService : IMotorCompraService
 
                 // Obter ou criar custódia filhote
                 var custodiaFilhote = await _custodiaRepository
-                    .ObterPorContaETickerAsync(contaFilhote.Id, item.Ticker);
+                    .ObterPorContaETickerAsync(contaFilhote.Id, ticker);
                 if (custodiaFilhote is null)
                 {
-                    custodiaFilhote = Custodia.Criar(contaFilhote.Id, item.Ticker);
+                    custodiaFilhote = Custodia.Criar(contaFilhote.Id, ticker);
                     await _custodiaRepository.AdicionarAsync(custodiaFilhote);
+                    await _unitOfWork.CommitAsync(); // Obter ID da nova custódia
                 }
 
                 // RN-038/041/042/044: Atualizar preço médio da custódia filhote
                 custodiaFilhote.AdicionarAcoes(qtdCliente, precoCotacao);
-                await _custodiaRepository.AtualizarAsync(custodiaFilhote);
 
                 // Registrar distribuição (vincula à primeira ordem deste ticker)
-                var ordemRef = ordensEntidade.FirstOrDefault(o => o.Ticker == item.Ticker);
+                var ordemRef = ordensEntidade.FirstOrDefault(o => o.Ticker == ticker);
                 if (ordemRef is not null)
                 {
                     var dist = Distribuicao.Criar(
                         ordemRef.Id, custodiaFilhote.Id,
-                        item.Ticker, qtdCliente, precoCotacao);
+                        ticker, qtdCliente, precoCotacao);
                     await _distribuicaoRepository.AdicionarAsync(dist);
                 }
 
                 // Remover da custódia master
-                custodiaMaster!.RemoverAcoes(qtdCliente, precoCotacao);
-                await _custodiaRepository.AtualizarAsync(custodiaMaster);
+                custodiaMaster.RemoverAcoes(qtdCliente, precoCotacao);
 
                 totalDistribuido += qtdCliente;
                 clientesDistribuidos++;
             }
 
             // RN-039: Resíduo permanece na custódia master
-            var residuo = custodiaMaster?.Quantidade ?? 0;
-
             distribuicoesResumo.Add(new DistribuicaoResumoDto(
-                item.Ticker, totalDistribuido, residuo, clientesDistribuidos));
+                ticker, totalDistribuido, custodiaMaster.Quantidade, clientesDistribuidos));
         }
 
+        // Commit fase 2: distribuições + atualizações de custódia
         await _unitOfWork.CommitAsync();
 
         return new ResultadoCompraResponse(
