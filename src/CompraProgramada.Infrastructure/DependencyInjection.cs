@@ -37,12 +37,17 @@ public static class DependencyInjection
 
         // Repositories
         services.AddScoped<ICotacaoRepository, CotacaoRepository>();
+        services.AddScoped<IClienteRepository, ClienteRepository>();
+        services.AddScoped<IContaGraficaRepository, ContaGraficaRepository>();
+        services.AddScoped<ICustodiaRepository, CustodiaRepository>();
+        services.AddScoped<IHistoricoValorMensalRepository, HistoricoValorMensalRepository>();
 
         // Parsers
         services.AddSingleton<ICotahistParser, CotahistParser>();
 
         // Application Services
         services.AddScoped<ICotacaoService, CotacaoService>();
+        services.AddScoped<IClienteService, ClienteService>();
 
         return services;
     }
