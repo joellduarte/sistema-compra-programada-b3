@@ -13,7 +13,7 @@ com arquitetura Clean Architecture + DDD, utilizando .NET 8, MySQL, Apache Kafka
 | 3 | EF Core com MySQL: DbContext, Fluent API Mappings e Migration Inicial | [x] Concluída | - |
 | 4 | Parser COTAHIST + Serviço de Cotações + Upload via Stream | [x] Concluída | RN-055 a RN-062 (COTAHIST) |
 | 5 | API do Cliente: Adesão, Saída, Alterar Valor, Carteira e Rentabilidade | [x] Concluída | RN-001 a RN-013, RN-063 a RN-070 |
-| 6 | Admin API: CRUD Cesta Top Five + Histórico de Recomendações | [ ] Pendente | RN-014 a RN-022 |
+| 6 | Admin API: CRUD Cesta Top Five + Histórico de Recomendações | [x] Concluída | RN-014 a RN-019 |
 | 7 | Motor de Compra Programada (core do sistema) | [ ] Pendente | RN-023 a RN-042, RN-044 a RN-048 |
 | 8 | Kafka Messaging: Producer IR dedo-duro + IR sobre vendas | [ ] Pendente | RN-049 a RN-054 |
 | 9 | Motor de Rebalanceamento | [ ] Pendente | RN-044 a RN-048 |
@@ -37,8 +37,10 @@ CompraProgramada.UnitTests     → Testes unitários (Domain + Service)
 ```
 
 ## Progresso de Testes
-- **40 testes passando** (0 falhas)
+- **60 testes passando** (0 falhas)
   - 11 testes do Parser COTAHIST
   - 10 testes de domínio (Cliente)
   - 8 testes de domínio (Custodia)
+  - 13 testes de domínio (CestaRecomendacao)
   - 11 testes de serviço (ClienteService)
+  - 7 testes de serviço (CestaService)

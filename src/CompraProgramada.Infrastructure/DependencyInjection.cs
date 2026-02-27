@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IContaGraficaRepository, ContaGraficaRepository>();
         services.AddScoped<ICustodiaRepository, CustodiaRepository>();
         services.AddScoped<IHistoricoValorMensalRepository, HistoricoValorMensalRepository>();
+        services.AddScoped<ICestaRecomendacaoRepository, CestaRecomendacaoRepository>();
 
         // Parsers
         services.AddSingleton<ICotahistParser, CotahistParser>();
@@ -48,6 +49,7 @@ public static class DependencyInjection
         // Application Services
         services.AddScoped<ICotacaoService, CotacaoService>();
         services.AddScoped<IClienteService, ClienteService>();
+        services.AddScoped<ICestaService, CestaService>();
 
         return services;
     }
