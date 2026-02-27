@@ -1,5 +1,9 @@
+using CompraProgramada.Application.Interfaces;
+using CompraProgramada.Application.Services;
 using CompraProgramada.Domain.Interfaces;
 using CompraProgramada.Infrastructure.Data;
+using CompraProgramada.Infrastructure.Data.Repositories;
+using CompraProgramada.Infrastructure.Parsers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +32,17 @@ public static class DependencyInjection
                         errorNumbersToAdd: null);
                 }));
 
+        // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Repositories
+        services.AddScoped<ICotacaoRepository, CotacaoRepository>();
+
+        // Parsers
+        services.AddSingleton<ICotahistParser, CotahistParser>();
+
+        // Application Services
+        services.AddScoped<ICotacaoService, CotacaoService>();
 
         return services;
     }
