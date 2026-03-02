@@ -26,6 +26,8 @@ public class CotacoesController : ControllerBase
     /// Filtra apenas registros TIPREG=01 e mercados à vista (TPMERC 010/020).
     /// Preços são divididos por 100 conforme especificação da B3.
     /// Suporta arquivos anuais grandes (até 500MB) via streaming.
+    /// Duplicatas são tratadas via upsert: registros existentes (mesmo ticker+data+mercado) são atualizados.
+    /// O arquivo é salvo na pasta cotacoes/ na raiz do projeto.
     /// </remarks>
     /// <param name="arquivo">Arquivo .TXT no formato COTAHIST da B3.</param>
     /// <response code="200">Importação concluída com sucesso.</response>
@@ -43,16 +45,30 @@ public class CotacoesController : ControllerBase
         if (extensao != ".TXT")
             return BadRequest(new { erro = "Formato inválido. Envie um arquivo .TXT no formato COTAHIST da B3." });
 
-        using var stream = arquivo.OpenReadStream();
-        var quantidade = await _cotacaoService.ImportarStreamCotahistAsync(stream);
+        // Salvar arquivo na pasta cotacoes/ (conforme estrutura da documentação)
+        var pastaRaiz = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        var pastaCotacoes = Path.Combine(pastaRaiz, "cotacoes");
+        Directory.CreateDirectory(pastaCotacoes);
+        var caminhoArquivo = Path.Combine(pastaCotacoes, arquivo.FileName);
+        using (var fileStream = new FileStream(caminhoArquivo, FileMode.Create))
+        {
+            await arquivo.CopyToAsync(fileStream);
+        }
 
-        if (quantidade == 0)
+        // Importar cotações para o banco (com upsert para evitar duplicatas)
+        using var stream = arquivo.OpenReadStream();
+        var (total, inseridos, atualizados) = await _cotacaoService.ImportarStreamCotahistAsync(stream);
+
+        if (total == 0)
             return BadRequest(new { erro = "Nenhuma cotação válida encontrada. Verifique se o arquivo está no formato COTAHIST da B3." });
 
         return Ok(new
         {
             mensagem = "Importação concluída com sucesso.",
-            registrosImportados = quantidade,
+            registrosProcessados = total,
+            novosInseridos = inseridos,
+            atualizados,
+            arquivoSalvo = $"cotacoes/{arquivo.FileName}",
             arquivo = arquivo.FileName
         });
     }

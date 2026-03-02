@@ -48,6 +48,21 @@ public class Cotacao : EntityBase
         };
     }
 
+    public void Atualizar(
+        decimal precoAbertura, decimal precoFechamento,
+        decimal precoMaximo, decimal precoMinimo,
+        decimal precoMedio, long quantidadeNegociada,
+        decimal volumeNegociado)
+    {
+        PrecoAbertura = precoAbertura;
+        PrecoFechamento = precoFechamento;
+        PrecoMaximo = precoMaximo;
+        PrecoMinimo = precoMinimo;
+        PrecoMedio = precoMedio;
+        QuantidadeNegociada = quantidadeNegociada;
+        VolumeNegociado = volumeNegociado;
+    }
+
     /// <summary>
     /// Verifica se é mercado à vista (010).
     /// </summary>

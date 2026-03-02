@@ -22,32 +22,34 @@ public class CotacaoService : ICotacaoService
 
     private const int TamanhoBatch = 5000;
 
-    public async Task<int> ImportarArquivoCotahistAsync(string caminhoArquivo)
+    public async Task<(int total, int inseridos, int atualizados)> ImportarArquivoCotahistAsync(string caminhoArquivo)
     {
         var cotacoes = _parser.ParseArquivo(caminhoArquivo);
-        return await SalvarEmLotesAsync(cotacoes);
+        return await SalvarEmLotesComUpsertAsync(cotacoes);
     }
 
-    public async Task<int> ImportarStreamCotahistAsync(Stream stream)
+    public async Task<(int total, int inseridos, int atualizados)> ImportarStreamCotahistAsync(Stream stream)
     {
         var cotacoes = _parser.ParseStream(stream);
-        return await SalvarEmLotesAsync(cotacoes);
+        return await SalvarEmLotesComUpsertAsync(cotacoes);
     }
 
-    private async Task<int> SalvarEmLotesAsync(IReadOnlyList<Cotacao> cotacoes)
+    private async Task<(int total, int inseridos, int atualizados)> SalvarEmLotesComUpsertAsync(IReadOnlyList<Cotacao> cotacoes)
     {
         if (cotacoes.Count == 0)
-            return 0;
+            return (0, 0, 0);
 
-        // Salvar em lotes para evitar timeout e uso excessivo de memória
+        var totalInseridos = 0;
+
         for (var i = 0; i < cotacoes.Count; i += TamanhoBatch)
         {
             var lote = cotacoes.Skip(i).Take(TamanhoBatch);
-            await _cotacaoRepository.AdicionarVariasAsync(lote);
+            totalInseridos += await _cotacaoRepository.UpsertVariasAsync(lote);
             await _unitOfWork.CommitAsync();
         }
 
-        return cotacoes.Count;
+        var totalAtualizados = cotacoes.Count - totalInseridos;
+        return (cotacoes.Count, totalInseridos, totalAtualizados);
     }
 
     public async Task<decimal?> ObterPrecoFechamentoAsync(string ticker)

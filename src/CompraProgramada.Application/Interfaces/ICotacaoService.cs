@@ -6,15 +6,15 @@ public interface ICotacaoService
 {
     /// <summary>
     /// Importa cotações de um arquivo COTAHIST da B3 pelo caminho.
-    /// Retorna a quantidade de registros importados.
+    /// Retorna (total processado, novos inseridos, atualizados).
     /// </summary>
-    Task<int> ImportarArquivoCotahistAsync(string caminhoArquivo);
+    Task<(int total, int inseridos, int atualizados)> ImportarArquivoCotahistAsync(string caminhoArquivo);
 
     /// <summary>
     /// Importa cotações de um stream COTAHIST da B3 (upload).
-    /// Retorna a quantidade de registros importados.
+    /// Retorna (total processado, novos inseridos, atualizados).
     /// </summary>
-    Task<int> ImportarStreamCotahistAsync(Stream stream);
+    Task<(int total, int inseridos, int atualizados)> ImportarStreamCotahistAsync(Stream stream);
 
     /// <summary>
     /// Obtém o preço de fechamento mais recente para um ticker.

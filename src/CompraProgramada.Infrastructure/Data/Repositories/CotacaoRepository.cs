@@ -33,6 +33,42 @@ public class CotacaoRepository : ICotacaoRepository
         await _context.Cotacoes.AddRangeAsync(cotacoes);
     }
 
+    public async Task<int> UpsertVariasAsync(IEnumerable<Cotacao> cotacoes)
+    {
+        var lista = cotacoes.ToList();
+        if (lista.Count == 0) return 0;
+
+        var datas = lista.Select(c => c.DataPregao.Date).Distinct().ToList();
+        var existentes = await _context.Cotacoes
+            .Where(c => datas.Contains(c.DataPregao))
+            .ToListAsync();
+
+        var existenteMap = existentes
+            .ToDictionary(c => (c.DataPregao.Date, c.Ticker, c.TipoMercado));
+
+        var inseridos = 0;
+        foreach (var cotacao in lista)
+        {
+            var chave = (cotacao.DataPregao.Date, cotacao.Ticker, cotacao.TipoMercado);
+            if (existenteMap.TryGetValue(chave, out var existente))
+            {
+                existente.Atualizar(
+                    cotacao.PrecoAbertura, cotacao.PrecoFechamento,
+                    cotacao.PrecoMaximo, cotacao.PrecoMinimo,
+                    cotacao.PrecoMedio, cotacao.QuantidadeNegociada,
+                    cotacao.VolumeNegociado);
+            }
+            else
+            {
+                await _context.Cotacoes.AddAsync(cotacao);
+                existenteMap[chave] = cotacao;
+                inseridos++;
+            }
+        }
+
+        return inseridos;
+    }
+
     public async Task<DateTime?> ObterUltimaDataPregaoAsync()
     {
         if (!await _context.Cotacoes.AnyAsync())
