@@ -121,6 +121,32 @@ public class ClientesController : ControllerBase
     }
 
     /// <summary>
+    /// RN-063 a RN-070: Consulta rentabilidade detalhada com histórico de aportes e evolução.
+    /// </summary>
+    /// <remarks>
+    /// Retorna saldo total, P/L por ativo, P/L total, rentabilidade percentual,
+    /// histórico de aportes (parcelas 1/3, 2/3, 3/3) e evolução da carteira ao longo do tempo.
+    /// </remarks>
+    /// <param name="clienteId">ID do cliente.</param>
+    /// <response code="200">Rentabilidade detalhada do cliente.</response>
+    /// <response code="404">Cliente não encontrado.</response>
+    [HttpGet("{clienteId}/rentabilidade")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> ConsultarRentabilidade(long clienteId)
+    {
+        try
+        {
+            var response = await _clienteService.ConsultarRentabilidadeAsync(clienteId);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { erro = "Cliente não encontrado.", codigo = "CLIENTE_NAO_ENCONTRADO" });
+        }
+    }
+
+    /// <summary>
     /// Consulta a carteira (custódia) do cliente com cotações atuais.
     /// </summary>
     /// <remarks>

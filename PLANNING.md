@@ -37,14 +37,14 @@ CompraProgramada.UnitTests     → Testes unitários (Domain + Service)
 ```
 
 ## Progresso de Testes
-- **107 testes passando** (0 falhas)
+- **113 testes passando** (0 falhas)
   - 11 testes do Parser COTAHIST
   - 10 testes de domínio (Cliente)
   - 8 testes de domínio (Custodia)
   - 13 testes de domínio (CestaRecomendacao)
   - 8 testes de domínio (EventoIR)
-  - 11 testes de serviço (ClienteService)
-  - 7 testes de serviço (CestaService)
+  - 13 testes de serviço (ClienteService + rentabilidade)
+  - 11 testes de serviço (CestaService + custódia master + RN-019)
   - 22 testes do Motor de Compra (MotorCompraService)
   - 8 testes de serviço (EventoIRService - resiliência Kafka)
   - 9 testes de serviço (RebalanceamentoService - mudança cesta + desvio)

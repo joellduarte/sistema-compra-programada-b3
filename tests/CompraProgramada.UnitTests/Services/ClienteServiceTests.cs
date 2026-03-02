@@ -13,6 +13,7 @@ public class ClienteServiceTests
     private readonly Mock<ICustodiaRepository> _custodiaRepoMock = new();
     private readonly Mock<ICotacaoRepository> _cotacaoRepoMock = new();
     private readonly Mock<IHistoricoValorMensalRepository> _historicoRepoMock = new();
+    private readonly Mock<IDistribuicaoRepository> _distribuicaoRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly ClienteService _service;
 
@@ -27,6 +28,7 @@ public class ClienteServiceTests
             _custodiaRepoMock.Object,
             _cotacaoRepoMock.Object,
             _historicoRepoMock.Object,
+            _distribuicaoRepoMock.Object,
             _unitOfWorkMock.Object);
     }
 
@@ -239,5 +241,45 @@ public class ClienteServiceTests
 
         Assert.Empty(result.Ativos);
         Assert.Equal(0m, result.Resumo.ValorTotalInvestido);
+    }
+
+    // ===== RENTABILIDADE =====
+
+    [Fact]
+    public async Task ConsultarRentabilidadeAsync_RetornaHistoricoEEvolucao()
+    {
+        var cliente = Cliente.Criar("João", "52998224725", "joao@email.com", 3000m);
+        var contaGrafica = ContaGrafica.CriarFilhote(1, "FLH-000001");
+
+        var custodia = Custodia.Criar(1, "PETR4");
+        custodia.AdicionarAcoes(10, 35m);
+
+        var cotacao = Cotacao.Criar(DateTime.Today, "PETR4", "02", 10, "PETROBRAS",
+            37m, 37m, 37m, 37m, 37m, 1000, 37000m);
+
+        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(1)).ReturnsAsync(cliente);
+        _contaGraficaRepoMock.Setup(r => r.ObterPorClienteIdAsync(1)).ReturnsAsync(contaGrafica);
+        _custodiaRepoMock.Setup(r => r.ObterPorContaGraficaIdAsync(It.IsAny<long>()))
+            .ReturnsAsync(new List<Custodia> { custodia });
+        _cotacaoRepoMock.Setup(r => r.ObterUltimaFechamentoAsync("PETR4")).ReturnsAsync(cotacao);
+        _distribuicaoRepoMock.Setup(r => r.ObterPorClienteAsync(1))
+            .ReturnsAsync(new List<Distribuicao>());
+
+        var result = await _service.ConsultarRentabilidadeAsync(1);
+
+        Assert.Equal("João", result.Nome);
+        Assert.NotNull(result.Rentabilidade);
+        Assert.Equal(350m, result.Rentabilidade.ValorTotalInvestido);
+        Assert.Equal(370m, result.Rentabilidade.ValorAtualCarteira);
+    }
+
+    [Fact]
+    public async Task ConsultarRentabilidadeAsync_ClienteNaoEncontrado_LancaException()
+    {
+        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(999))
+            .ReturnsAsync((Cliente?)null);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => _service.ConsultarRentabilidadeAsync(999));
     }
 }

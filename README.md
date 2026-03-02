@@ -77,7 +77,7 @@ A API sobe em `http://localhost:5062` com Swagger na página inicial.
 dotnet test
 ```
 
-> **107 testes unitários** passando com cobertura de domínio, serviços e regras de negócio.
+> **113 testes unitários** passando com cobertura de domínio, serviços e regras de negócio.
 
 ## Guia de Teste Rápido
 
@@ -133,13 +133,25 @@ O motor executa o ciclo completo:
 
 Veja a posição de cada ativo com quantidade, preço médio e valor atual.
 
-### Passo 6 (Opcional) — Consultar Datas de Compra
+### Passo 6 — Rentabilidade Detalhada
+
+**`GET /api/Clientes/1/rentabilidade`**
+
+Retorna histórico de aportes (parcelas 1/3, 2/3, 3/3) e evolução da carteira ao longo do tempo.
+
+### Passo 7 — Consultar Resíduos na Conta Master
+
+**`GET /api/Admin/conta-master/custodia`**
+
+Veja as ações que ficaram na conta master após a distribuição (resíduos de arredondamento).
+
+### Passo 8 (Opcional) — Consultar Datas de Compra
 
 **`GET /api/Compras/datas/2026/3`**
 
 Retorna os dias 5, 15 e 25 ajustados para dia útil.
 
-### Passo 7 (Opcional) — Rebalancear por Desvio
+### Passo 9 (Opcional) — Rebalancear por Desvio
 
 **`POST /api/Rebalanceamento/desvio?limiar=5`**
 
@@ -158,10 +170,12 @@ Verifica se algum ativo desviou mais de 5pp do alvo e rebalanceia vendendo sobre
 | `POST` | `/api/Clientes/{id}/saida` | Saída do produto | RN-007 a RN-009 |
 | `PUT` | `/api/Clientes/{id}/valor-mensal` | Alterar aporte mensal | RN-011 a RN-013 |
 | `GET` | `/api/Clientes/{id}/carteira` | Consultar carteira | RN-063 a RN-070 |
-| `POST` | `/api/Admin/cestas` | Criar cesta Top Five | RN-014 a RN-018 |
+| `GET` | `/api/Clientes/{id}/rentabilidade` | Rentabilidade detalhada | RN-063 a RN-070 |
+| `POST` | `/api/Admin/cestas` | Criar cesta Top Five (+ rebalanceamento auto) | RN-014 a RN-019 |
 | `GET` | `/api/Admin/cestas/ativa` | Cesta ativa | - |
 | `GET` | `/api/Admin/cestas/{id}` | Cesta por ID | - |
 | `GET` | `/api/Admin/cestas/historico` | Histórico de cestas | RN-019 |
+| `GET` | `/api/Admin/conta-master/custodia` | Custódia master (resíduos) | RN-039/040 |
 | `POST` | `/api/Compras/executar` | Executar compra programada | RN-020 a RN-044 |
 | `GET` | `/api/Compras/datas/{ano}/{mes}` | Datas de compra do mês | RN-020 |
 | `POST` | `/api/Rebalanceamento/mudanca-cesta` | Rebalancear por mudança | RN-045 a RN-049 |
@@ -180,7 +194,7 @@ O sistema implementa **70 regras de negócio** (RN-001 a RN-070) organizadas em:
 
 ## Testes
 
-O projeto possui **107 testes unitários** cobrindo:
+O projeto possui **113 testes unitários** cobrindo:
 
 | Categoria | Testes | Cobertura |
 |---|---|---|
@@ -189,8 +203,8 @@ O projeto possui **107 testes unitários** cobrindo:
 | Domínio: Custódia | 8 | Preço médio, adicionar/remover ações |
 | Domínio: Cesta | 13 | 5 ativos, soma 100%, ativação/desativação |
 | Domínio: EventoIR | 8 | Dedo-duro, IR vendas, isenção R$20k |
-| Serviço: Cliente | 11 | CRUD, validações, carteira |
-| Serviço: Cesta | 7 | Criar, ativar, histórico |
+| Serviço: Cliente | 13 | CRUD, validações, carteira, rentabilidade |
+| Serviço: Cesta | 11 | Criar, ativar, histórico, custódia master, RN-019 |
 | Serviço: Motor de Compra | 22 | Consolidação, lote/fracionário, distribuição, resíduos |
 | Serviço: EventoIR | 8 | Kafka OK/falha, reprocessamento, resiliência |
 | Serviço: Rebalanceamento | 9 | Mudança de cesta, desvio, apuração fiscal |
@@ -205,6 +219,7 @@ dotnet test --verbosity normal
 - **Distribuição com TRUNCAR**: Quantidades fracionárias são truncadas (não arredondadas). Resíduos permanecem na conta master.
 - **Preço médio**: Recalculado apenas em operações de compra. Vendas não alteram o preço médio.
 - **Lote padrão vs fracionário**: Compras ≥100 ações vão para o mercado à vista; 1-99 ações vão para o fracionário (sufixo F no ticker).
+- **RN-019 automático**: Ao criar uma nova cesta, o rebalanceamento por mudança de cesta é disparado automaticamente para todos os clientes ativos.
 - **Migrations automáticas**: O EF Core aplica migrations no startup para facilitar demonstração.
 
 ## Estrutura do Projeto
@@ -218,7 +233,7 @@ sistema-compra-programada-b3/
 │   ├── CompraProgramada.Domain/        # Entities, Value Objects, Enums
 │   └── CompraProgramada.Infrastructure/# EF Core, Repositories, Kafka, Parsers
 ├── tests/
-│   ├── CompraProgramada.UnitTests/     # 107 testes unitários
+│   ├── CompraProgramada.UnitTests/     # 113 testes unitários
 │   └── CompraProgramada.IntegrationTests/
 └── PLANNING.md
 ```

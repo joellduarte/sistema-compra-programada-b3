@@ -96,4 +96,30 @@ public class AdminController : ControllerBase
         var result = await _cestaService.ObterHistoricoAsync();
         return Ok(result);
     }
+
+    /// <summary>
+    /// Consulta a custódia da conta master (resíduos de distribuição).
+    /// </summary>
+    /// <remarks>
+    /// A conta master mantém ações residuais que não puderam ser distribuídas
+    /// para as contas filhotes devido a arredondamentos (TRUNCAR).
+    /// Esses resíduos são considerados na próxima compra programada (RN-039/040).
+    /// </remarks>
+    /// <response code="200">Custódia master com resíduos.</response>
+    /// <response code="400">Conta master não encontrada.</response>
+    [HttpGet("conta-master/custodia")]
+    [ProducesResponseType(typeof(CustodiaMasterResponse), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> ConsultarCustodiaMaster()
+    {
+        try
+        {
+            var result = await _cestaService.ConsultarCustodiaMasterAsync();
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { erro = ex.Message });
+        }
+    }
 }

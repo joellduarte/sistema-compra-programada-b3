@@ -57,10 +57,10 @@ public static class DependencyInjection
         // Application Services
         services.AddScoped<ICotacaoService, CotacaoService>();
         services.AddScoped<IClienteService, ClienteService>();
-        services.AddScoped<ICestaService, CestaService>();
         services.AddScoped<IMotorCompraService, MotorCompraService>();
         services.AddScoped<IEventoIRService, EventoIRService>();
         services.AddScoped<IRebalanceamentoService, RebalanceamentoService>();
+        services.AddScoped<ICestaService, CestaService>(); // Após RebalanceamentoService (RN-019)
 
         return services;
     }

@@ -8,4 +8,5 @@ public interface IClienteService
     Task<SaidaResponse> SairAsync(long clienteId);
     Task<AlterarValorMensalResponse> AlterarValorMensalAsync(long clienteId, AlterarValorMensalRequest request);
     Task<CarteiraResponse> ConsultarCarteiraAsync(long clienteId);
+    Task<RentabilidadeResponse> ConsultarRentabilidadeAsync(long clienteId);
 }

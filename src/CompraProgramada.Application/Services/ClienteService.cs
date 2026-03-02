@@ -12,6 +12,7 @@ public class ClienteService : IClienteService
     private readonly ICustodiaRepository _custodiaRepository;
     private readonly ICotacaoRepository _cotacaoRepository;
     private readonly IHistoricoValorMensalRepository _historicoRepository;
+    private readonly IDistribuicaoRepository _distribuicaoRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public ClienteService(
@@ -20,6 +21,7 @@ public class ClienteService : IClienteService
         ICustodiaRepository custodiaRepository,
         ICotacaoRepository cotacaoRepository,
         IHistoricoValorMensalRepository historicoRepository,
+        IDistribuicaoRepository distribuicaoRepository,
         IUnitOfWork unitOfWork)
     {
         _clienteRepository = clienteRepository;
@@ -27,6 +29,7 @@ public class ClienteService : IClienteService
         _custodiaRepository = custodiaRepository;
         _cotacaoRepository = cotacaoRepository;
         _historicoRepository = historicoRepository;
+        _distribuicaoRepository = distribuicaoRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -178,5 +181,78 @@ public class ClienteService : IClienteService
                 Math.Round(plTotal, 2),
                 rentabilidade),
             ativosComComposicao);
+    }
+
+    public async Task<RentabilidadeResponse> ConsultarRentabilidadeAsync(long clienteId)
+    {
+        var cliente = await _clienteRepository.ObterPorIdAsync(clienteId)
+            ?? throw new KeyNotFoundException("CLIENTE_NAO_ENCONTRADO:Cliente não encontrado.");
+
+        // Obter carteira atual (reutiliza lógica existente)
+        var carteira = await ConsultarCarteiraAsync(clienteId);
+
+        // Obter distribuições para montar histórico de aportes
+        var distribuicoes = await _distribuicaoRepository.ObterPorClienteAsync(clienteId);
+
+        // Agrupar distribuições por data de execução (cada data = 1 parcela)
+        var aportesPorData = distribuicoes
+            .GroupBy(d => d.OrdemCompra.DataReferencia.Date)
+            .OrderBy(g => g.Key)
+            .ToList();
+
+        var historicoAportes = new List<AporteHistoricoDto>();
+        var evolucaoCarteira = new List<EvolucaoCarteiraDto>();
+        decimal acumuladoInvestido = 0;
+        int parcelaNoMes = 0;
+        int mesAnterior = -1;
+
+        foreach (var grupo in aportesPorData)
+        {
+            var valorAporte = grupo.Sum(d => d.Quantidade * d.PrecoUnitario);
+            acumuladoInvestido += valorAporte;
+
+            // Controlar parcela (1/3, 2/3, 3/3) por mês
+            if (grupo.Key.Month != mesAnterior)
+            {
+                parcelaNoMes = 1;
+                mesAnterior = grupo.Key.Month;
+            }
+            else
+            {
+                parcelaNoMes++;
+            }
+
+            historicoAportes.Add(new AporteHistoricoDto(
+                grupo.Key.ToString("yyyy-MM-dd"),
+                Math.Round(valorAporte, 2),
+                $"{parcelaNoMes}/3"));
+
+            // Evolução: valor investido acumulado até essa data
+            // (para simplificação, usamos o valor atual da carteira só no último ponto)
+            evolucaoCarteira.Add(new EvolucaoCarteiraDto(
+                grupo.Key.ToString("yyyy-MM-dd"),
+                Math.Round(acumuladoInvestido, 2), // valor carteira na época ≈ investido (simplificação)
+                Math.Round(acumuladoInvestido, 2),
+                0));
+        }
+
+        // Último ponto da evolução: carteira atual real
+        if (evolucaoCarteira.Count > 0)
+        {
+            var ultimo = evolucaoCarteira[^1];
+            evolucaoCarteira[^1] = ultimo with
+            {
+                ValorCarteira = carteira.Resumo.ValorAtualCarteira,
+                Rentabilidade = carteira.Resumo.RentabilidadePercentual
+            };
+        }
+
+        return new RentabilidadeResponse(
+            cliente.Id,
+            cliente.Nome,
+            DateTime.UtcNow,
+            carteira.Resumo,
+            historicoAportes,
+            evolucaoCarteira);
     }
 }

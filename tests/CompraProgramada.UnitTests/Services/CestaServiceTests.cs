@@ -1,6 +1,8 @@
 using CompraProgramada.Application.DTOs;
+using CompraProgramada.Application.Interfaces;
 using CompraProgramada.Application.Services;
 using CompraProgramada.Domain.Entities;
+using CompraProgramada.Domain.Enums;
 using CompraProgramada.Domain.Interfaces;
 using Moq;
 
@@ -9,6 +11,9 @@ namespace CompraProgramada.UnitTests.Services;
 public class CestaServiceTests
 {
     private readonly Mock<ICestaRecomendacaoRepository> _cestaRepoMock = new();
+    private readonly Mock<IContaGraficaRepository> _contaGraficaRepoMock = new();
+    private readonly Mock<ICustodiaRepository> _custodiaRepoMock = new();
+    private readonly Mock<ICotacaoRepository> _cotacaoRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly CestaService _service;
 
@@ -19,6 +24,9 @@ public class CestaServiceTests
 
         _service = new CestaService(
             _cestaRepoMock.Object,
+            _contaGraficaRepoMock.Object,
+            _custodiaRepoMock.Object,
+            _cotacaoRepoMock.Object,
             _unitOfWorkMock.Object);
     }
 
@@ -189,5 +197,102 @@ public class CestaServiceTests
         var result = await _service.ObterHistoricoAsync();
 
         Assert.Equal(2, result.Count);
+    }
+
+    // ===== CUSTÓDIA MASTER =====
+
+    [Fact]
+    public async Task ConsultarCustodiaMasterAsync_RetornaResíduos()
+    {
+        var contaMaster = ContaGrafica.CriarMaster();
+
+        var custodiaPetr = Custodia.Criar(1, "PETR4");
+        custodiaPetr.AdicionarAcoes(2, 35m);
+
+        var custodiaVale = Custodia.Criar(1, "VALE3");
+        custodiaVale.AdicionarAcoes(1, 62m);
+
+        _contaGraficaRepoMock.Setup(r => r.ObterMasterAsync()).ReturnsAsync(contaMaster);
+        _custodiaRepoMock.Setup(r => r.ObterPorContaGraficaIdAsync(It.IsAny<long>()))
+            .ReturnsAsync(new List<Custodia> { custodiaPetr, custodiaVale });
+        _cotacaoRepoMock.Setup(r => r.ObterUltimaFechamentoAsync("PETR4"))
+            .ReturnsAsync(Cotacao.Criar(DateTime.Today, "PETR4", "02", 10, "PETROBRAS",
+                37m, 37m, 37m, 37m, 37m, 1000, 37000m));
+        _cotacaoRepoMock.Setup(r => r.ObterUltimaFechamentoAsync("VALE3"))
+            .ReturnsAsync(Cotacao.Criar(DateTime.Today, "VALE3", "02", 10, "VALE",
+                65m, 65m, 65m, 65m, 65m, 1000, 65000m));
+
+        var result = await _service.ConsultarCustodiaMasterAsync();
+
+        Assert.Equal("MASTER", result.ContaMaster.Tipo);
+        Assert.Equal(2, result.Custodia.Count);
+        Assert.Equal(2, result.Custodia.First(a => a.Ticker == "PETR4").Quantidade);
+        Assert.Equal(1, result.Custodia.First(a => a.Ticker == "VALE3").Quantidade);
+        Assert.True(result.ValorTotalResiduo > 0);
+    }
+
+    [Fact]
+    public async Task ConsultarCustodiaMasterAsync_SemMaster_LancaException()
+    {
+        _contaGraficaRepoMock.Setup(r => r.ObterMasterAsync())
+            .ReturnsAsync((ContaGrafica?)null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.ConsultarCustodiaMasterAsync());
+    }
+
+    // ===== RN-019: REBALANCEAMENTO AUTOMÁTICO =====
+
+    [Fact]
+    public async Task CriarCestaAsync_ComCestaAnterior_DisparaRebalanceamento()
+    {
+        var cestaAnterior = CestaRecomendacao.Criar("Antiga",
+        [
+            ("PETR4", 20m), ("VALE3", 20m), ("ITUB4", 20m), ("BBDC4", 20m), ("ABEV3", 20m)
+        ]);
+
+        _cestaRepoMock.Setup(r => r.ObterAtivaAsync()).ReturnsAsync(cestaAnterior);
+
+        var rebalanceamentoMock = new Mock<IRebalanceamentoService>();
+        rebalanceamentoMock
+            .Setup(r => r.RebalancearPorMudancaCestaAsync(It.IsAny<long>(), It.IsAny<long>()))
+            .ReturnsAsync(new RebalanceamentoResponse("MUDANCA_CESTA", 0, [], ""));
+
+        var serviceComRebalanceamento = new CestaService(
+            _cestaRepoMock.Object,
+            _contaGraficaRepoMock.Object,
+            _custodiaRepoMock.Object,
+            _cotacaoRepoMock.Object,
+            _unitOfWorkMock.Object,
+            rebalanceamentoMock.Object);
+
+        await serviceComRebalanceamento.CriarCestaAsync(CriarRequestValido());
+
+        rebalanceamentoMock.Verify(
+            r => r.RebalancearPorMudancaCestaAsync(It.IsAny<long>(), It.IsAny<long>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CriarCestaAsync_PrimeiraCesta_NaoDisparaRebalanceamento()
+    {
+        _cestaRepoMock.Setup(r => r.ObterAtivaAsync())
+            .ReturnsAsync((CestaRecomendacao?)null);
+
+        var rebalanceamentoMock = new Mock<IRebalanceamentoService>();
+
+        var serviceComRebalanceamento = new CestaService(
+            _cestaRepoMock.Object,
+            _contaGraficaRepoMock.Object,
+            _custodiaRepoMock.Object,
+            _cotacaoRepoMock.Object,
+            _unitOfWorkMock.Object,
+            rebalanceamentoMock.Object);
+
+        await serviceComRebalanceamento.CriarCestaAsync(CriarRequestValido());
+
+        rebalanceamentoMock.Verify(
+            r => r.RebalancearPorMudancaCestaAsync(It.IsAny<long>(), It.IsAny<long>()),
+            Times.Never);
     }
 }

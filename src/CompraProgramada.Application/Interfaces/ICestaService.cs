@@ -8,4 +8,5 @@ public interface ICestaService
     Task<CestaResponse?> ObterCestaAtivaAsync();
     Task<CestaResponse?> ObterCestaPorIdAsync(long id);
     Task<IReadOnlyList<CestaResponse>> ObterHistoricoAsync();
+    Task<CustodiaMasterResponse> ConsultarCustodiaMasterAsync();
 }
