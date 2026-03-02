@@ -67,7 +67,7 @@ cd src/CompraProgramada.API
 dotnet run
 ```
 
-A API sobe em `http://localhost:5062` com Swagger na página inicial.
+A API sobe em `http://localhost:5265` com Swagger na página inicial.
 
 > As migrations do EF Core são aplicadas automaticamente no startup.
 
@@ -81,7 +81,7 @@ dotnet test
 
 ## Guia de Teste Rápido
 
-Siga esta ordem no Swagger (`http://localhost:5062`) para ver o sistema funcionando de ponta a ponta:
+Siga esta ordem no Swagger (`http://localhost:5265`) para ver o sistema funcionando de ponta a ponta:
 
 ### Passo 1 — Importar Cotações
 
