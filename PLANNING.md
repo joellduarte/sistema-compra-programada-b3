@@ -17,7 +17,7 @@ com arquitetura Clean Architecture + DDD, utilizando .NET 8, MySQL, Apache Kafka
 | 7 | Motor de Compra Programada (core do sistema) | [x] Concluída | RN-020 a RN-044 |
 | 8 | Kafka Messaging: Producer IR dedo-duro + IR sobre vendas | [x] Concluída | RN-053 a RN-062 |
 | 9 | Motor de Rebalanceamento | [x] Concluída | RN-045 a RN-052 |
-| 10 | Testes (cobertura >= 70%) + README + Swagger polish | [ ] Pendente | - |
+| 10 | Testes (cobertura >= 70%) + README + Swagger polish | [x] Concluída | - |
 
 ## Stack Tecnológica
 - **Backend**: .NET 8.0 (C#)

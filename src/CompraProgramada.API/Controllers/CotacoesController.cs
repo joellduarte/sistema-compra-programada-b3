@@ -3,8 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CompraProgramada.API.Controllers;
 
+/// <summary>
+/// Gestão de cotações da B3 (importação COTAHIST e consultas).
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class CotacoesController : ControllerBase
 {
     private readonly ICotacaoService _cotacaoService;
@@ -15,11 +19,21 @@ public class CotacoesController : ControllerBase
     }
 
     /// <summary>
-    /// Importa cotações via upload de arquivo COTAHIST (.TXT).
-    /// Aceita apenas arquivos .TXT com formato COTAHIST válido da B3.
+    /// RN-055 a RN-062: Importa cotações via upload de arquivo COTAHIST (.TXT).
     /// </summary>
+    /// <remarks>
+    /// Aceita arquivos .TXT no layout posicional COTAHIST da B3 (245 caracteres por linha).
+    /// Filtra apenas registros TIPREG=01 e mercados à vista (TPMERC 010/020).
+    /// Preços são divididos por 100 conforme especificação da B3.
+    /// Suporta arquivos anuais grandes (até 500MB) via streaming.
+    /// </remarks>
+    /// <param name="arquivo">Arquivo .TXT no formato COTAHIST da B3.</param>
+    /// <response code="200">Importação concluída com sucesso.</response>
+    /// <response code="400">Arquivo inválido ou nenhuma cotação encontrada.</response>
     [HttpPost("importar")]
-    [RequestSizeLimit(500_000_000)] // 500MB para arquivos anuais grandes
+    [RequestSizeLimit(500_000_000)]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
     public async Task<IActionResult> ImportarArquivoUpload(IFormFile arquivo)
     {
         if (arquivo is null || arquivo.Length == 0)
@@ -46,7 +60,12 @@ public class CotacoesController : ControllerBase
     /// <summary>
     /// Obtém o preço de fechamento mais recente de um ticker.
     /// </summary>
+    /// <param name="ticker">Código do ativo (ex: PETR4, VALE3, ITUB4).</param>
+    /// <response code="200">Preço de fechamento encontrado.</response>
+    /// <response code="404">Nenhuma cotação encontrada para o ticker informado.</response>
     [HttpGet("{ticker}/preco")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> ObterPrecoFechamento(string ticker)
     {
         var preco = await _cotacaoService.ObterPrecoFechamentoAsync(ticker.ToUpperInvariant());
@@ -60,7 +79,12 @@ public class CotacoesController : ControllerBase
     /// <summary>
     /// Obtém todas as cotações de uma data de pregão.
     /// </summary>
+    /// <param name="data">Data do pregão (formato: yyyy-MM-dd).</param>
+    /// <response code="200">Lista de cotações do pregão.</response>
+    /// <response code="404">Nenhuma cotação encontrada para a data.</response>
     [HttpGet("data/{data}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> ObterPorData(DateTime data)
     {
         var cotacoes = await _cotacaoService.ObterCotacoesPorDataAsync(data);
@@ -86,7 +110,11 @@ public class CotacoesController : ControllerBase
     /// <summary>
     /// Obtém a data do último pregão importado.
     /// </summary>
+    /// <response code="200">Data do último pregão.</response>
+    /// <response code="404">Nenhuma cotação importada ainda.</response>
     [HttpGet("ultimo-pregao")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> ObterUltimaDataPregao()
     {
         var data = await _cotacaoService.ObterUltimaDataPregaoAsync();

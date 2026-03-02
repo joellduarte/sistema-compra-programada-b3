@@ -19,8 +19,17 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Compra Programada API",
         Version = "v1",
-        Description = "Sistema de Compra Programada de Ações - Itaú Corretora"
+        Description = "Sistema de Compra Programada de Ações (Top Five) - Itaú Corretora. " +
+            "Permite adesão de clientes, gestão de cestas recomendadas, execução de compras programadas " +
+            "nos dias 5/15/25, rebalanceamento de carteiras e apuração fiscal (IR) via Kafka.",
+        Contact = new OpenApiContact
+        {
+            Name = "Joel Lima"
+        }
     });
+
+    var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
 var app = builder.Build();
