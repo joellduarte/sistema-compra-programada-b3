@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IOrdemCompraRepository, OrdemCompraRepository>();
         services.AddScoped<IDistribuicaoRepository, DistribuicaoRepository>();
         services.AddScoped<IEventoIRRepository, EventoIRRepository>();
+        services.AddScoped<IRebalanceamentoRepository, RebalanceamentoRepository>();
 
         // Kafka
         services.AddSingleton<IKafkaProducer, KafkaProducer>();
@@ -59,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<ICestaService, CestaService>();
         services.AddScoped<IMotorCompraService, MotorCompraService>();
         services.AddScoped<IEventoIRService, EventoIRService>();
+        services.AddScoped<IRebalanceamentoService, RebalanceamentoService>();
 
         return services;
     }

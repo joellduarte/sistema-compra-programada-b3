@@ -16,7 +16,7 @@ com arquitetura Clean Architecture + DDD, utilizando .NET 8, MySQL, Apache Kafka
 | 6 | Admin API: CRUD Cesta Top Five + Histórico de Recomendações | [x] Concluída | RN-014 a RN-019 |
 | 7 | Motor de Compra Programada (core do sistema) | [x] Concluída | RN-020 a RN-044 |
 | 8 | Kafka Messaging: Producer IR dedo-duro + IR sobre vendas | [x] Concluída | RN-053 a RN-062 |
-| 9 | Motor de Rebalanceamento | [ ] Pendente | RN-044 a RN-048 |
+| 9 | Motor de Rebalanceamento | [x] Concluída | RN-045 a RN-052 |
 | 10 | Testes (cobertura >= 70%) + README + Swagger polish | [ ] Pendente | - |
 
 ## Stack Tecnológica
@@ -37,7 +37,7 @@ CompraProgramada.UnitTests     → Testes unitários (Domain + Service)
 ```
 
 ## Progresso de Testes
-- **98 testes passando** (0 falhas)
+- **107 testes passando** (0 falhas)
   - 11 testes do Parser COTAHIST
   - 10 testes de domínio (Cliente)
   - 8 testes de domínio (Custodia)
@@ -47,3 +47,4 @@ CompraProgramada.UnitTests     → Testes unitários (Domain + Service)
   - 7 testes de serviço (CestaService)
   - 22 testes do Motor de Compra (MotorCompraService)
   - 8 testes de serviço (EventoIRService - resiliência Kafka)
+  - 9 testes de serviço (RebalanceamentoService - mudança cesta + desvio)
