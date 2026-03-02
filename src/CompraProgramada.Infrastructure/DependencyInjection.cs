@@ -3,6 +3,7 @@ using CompraProgramada.Application.Services;
 using CompraProgramada.Domain.Interfaces;
 using CompraProgramada.Infrastructure.Data;
 using CompraProgramada.Infrastructure.Data.Repositories;
+using CompraProgramada.Infrastructure.Messaging;
 using CompraProgramada.Infrastructure.Parsers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -44,6 +45,10 @@ public static class DependencyInjection
         services.AddScoped<ICestaRecomendacaoRepository, CestaRecomendacaoRepository>();
         services.AddScoped<IOrdemCompraRepository, OrdemCompraRepository>();
         services.AddScoped<IDistribuicaoRepository, DistribuicaoRepository>();
+        services.AddScoped<IEventoIRRepository, EventoIRRepository>();
+
+        // Kafka
+        services.AddSingleton<IKafkaProducer, KafkaProducer>();
 
         // Parsers
         services.AddSingleton<ICotahistParser, CotahistParser>();
@@ -53,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<IClienteService, ClienteService>();
         services.AddScoped<ICestaService, CestaService>();
         services.AddScoped<IMotorCompraService, MotorCompraService>();
+        services.AddScoped<IEventoIRService, EventoIRService>();
 
         return services;
     }
