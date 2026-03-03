@@ -87,7 +87,15 @@ Siga esta ordem no Swagger (`http://localhost:5265`) para ver o sistema funciona
 
 **`POST /api/Cotacoes/importar`** — Faça upload do arquivo COTAHIST (.TXT) da B3.
 
-### Passo 2 — Cadastrar um Cliente
+Verifique na resposta os campos `novosInseridos` e `atualizados`.
+
+### Passo 2 — Confirmar Importação
+
+**`GET /api/Cotacoes/ultimo-pregao`**
+
+Confirma que as cotações foram importadas retornando a data do último pregão disponível.
+
+### Passo 3 — Cadastrar Cliente A
 
 **`POST /api/Clientes/adesao`**
 ```json
@@ -99,7 +107,19 @@ Siga esta ordem no Swagger (`http://localhost:5265`) para ver o sistema funciona
 }
 ```
 
-### Passo 3 — Criar a Cesta Top Five
+### Passo 4 — Cadastrar Cliente B
+
+**`POST /api/Clientes/adesao`**
+```json
+{
+  "nome": "Maria Souza",
+  "cpf": "71428793860",
+  "email": "maria@email.com",
+  "valorMensal": 6000
+}
+```
+
+### Passo 5 — Criar a Cesta Top Five
 
 **`POST /api/Admin/cestas`**
 ```json
@@ -117,7 +137,7 @@ Siga esta ordem no Swagger (`http://localhost:5265`) para ver o sistema funciona
 
 > A cesta deve ter **exatamente 5 ativos** e a soma dos percentuais deve ser **100%**.
 
-### Passo 4 — Executar Compra Programada
+### Passo 6 — Executar Compra Programada
 
 **`POST /api/Compras/executar?dataReferencia=2026-03-05`**
 
@@ -127,35 +147,53 @@ O motor executa o ciclo completo:
 - Distribui proporcionalmente para cada cliente (resíduos ficam na conta master)
 - Registra IR dedo-duro (0,005%) no Kafka
 
-### Passo 5 — Verificar Carteira
+### Passo 7 — Verificar Carteira do Cliente A
 
 **`GET /api/Clientes/1/carteira`**
 
 Veja a posição de cada ativo com quantidade, preço médio e valor atual.
 
-### Passo 6 — Rentabilidade Detalhada
+### Passo 8 — Rentabilidade Detalhada
 
 **`GET /api/Clientes/1/rentabilidade`**
 
 Retorna histórico de aportes (parcelas 1/3, 2/3, 3/3) e evolução da carteira ao longo do tempo.
 
-### Passo 7 — Consultar Resíduos na Conta Master
+### Passo 9 — Consultar Resíduos na Conta Master
 
 **`GET /api/Admin/conta-master/custodia`**
 
 Veja as ações que ficaram na conta master após a distribuição (resíduos de arredondamento).
 
-### Passo 8 (Opcional) — Consultar Datas de Compra
+### Passo 10 — Reimportar Cotações (teste de upsert)
 
-**`GET /api/Compras/datas/2026/3`**
+**`POST /api/Cotacoes/importar`** — Reimporte o **mesmo arquivo** COTAHIST.
 
-Retorna os dias 5, 15 e 25 ajustados para dia útil.
+Confirme que `atualizados > 0` e `novosInseridos = 0` (duplicatas são tratadas automaticamente).
 
-### Passo 9 (Opcional) — Rebalancear por Desvio
+### Passo 11 (Bônus) — Rebalanceamento por Mudança de Cesta
 
-**`POST /api/Rebalanceamento/desvio?limiar=5`**
+**`POST /api/Admin/cestas`** — Crie uma nova cesta trocando algumas ações:
+```json
+{
+  "nome": "Top Five Abril 2026",
+  "itens": [
+    { "ticker": "PETR4", "percentual": 25 },
+    { "ticker": "VALE3", "percentual": 20 },
+    { "ticker": "ITUB4", "percentual": 20 },
+    { "ticker": "RENT3", "percentual": 20 },
+    { "ticker": "WEGE3", "percentual": 15 }
+  ]
+}
+```
 
-Verifica se algum ativo desviou mais de 5pp do alvo e rebalanceia vendendo sobre-alocados e comprando sub-alocados.
+O sistema vende automaticamente os ativos que saíram (BBDC4, ABEV3) e compra os novos (RENT3, WEGE3).
+
+### Passo 12 (Bônus) — Verificar Rebalanceamento
+
+**`GET /api/Clientes/1/carteira`**
+
+Confirme que a carteira do cliente foi atualizada com os novos ativos da cesta.
 
 ## Endpoints da API
 
